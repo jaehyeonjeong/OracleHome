@@ -1,0 +1,79 @@
+select * from employees;
+
+select e.first_name ||
+e.last_name as "이름",
+e.salary as "급여",
+d.department_name as "부서이름",
+e.hire_date
+from employees e, departments d
+where e.department_id = d.department_id
+and e.hire_date = (select max(hire_date)
+                    from employees);
+
+select a.employee_id as "사번",
+a.first_name as "이름",
+a.last_name as "성",
+a.salary as "급여",
+b.avg_salary as "평균급여",
+j.job_title as "업무이름"
+from employees a,
+    (select department_id,
+        avg(salary) as avg_salary       --평균 급여
+    from employees
+    group by department_id) b,
+    jobs j
+where a.department_id = b.department_id
+and b.avg_salary = (select max( avg(salary))
+                    from employees
+                    group by department_id) --부서별 그룹 지정
+and a.job_id = j.job_id;                    
+
+
+--평균 급여가 가장 높은 부서
+select d.department_name, a.avg_salary
+from departments d,
+    (select avg(salary) avg_salary, department_id
+    from employees
+    group by department_id) a
+where d.department_id = a.department_id
+and a.avg_salary = (select max(avg(salary)) max_salary
+                    from employees
+                    group by department_id);
+                    
+--평균 급여(salary)가 가장 높은 지역은
+select region_name
+from regions
+where region_id =  (select r.region_id
+                    from employees e,
+                         departments d,
+                         locations l,
+                         countries c,
+                         regions r
+                    where e.department_id = d.department_id
+                    and   d.location_id = l.location_id
+                    and   l.country_id = c.country_id
+                    and   c.region_id = r.region_id
+                    group by r.region_id
+                    having avg(salary) = (select max(avg(salary))
+                                          from employees e,
+                                               departments d,
+                                               locations l,
+                                               countries c,
+                                               regions r
+                                          where e.department_id = d.department_id
+                                          and   d.location_id = l.location_id
+                                          and   l.country_id = c.country_id
+                                          and   c.region_id = r.region_id
+                                          group by r.region_id));
+
+
+
+--평균 급여가 가장 높은 업무는
+select job_title
+from jobs
+where job_id = (select job_id
+                from employees
+                group by job_id
+                having avg(salary) = (select max(avg(salary))
+                                        from employees
+                                        group by job_id));
